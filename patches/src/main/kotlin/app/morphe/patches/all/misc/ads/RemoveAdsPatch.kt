@@ -74,6 +74,16 @@ private val AD_SDK_EXCLUDED_PREFIXES = listOf(
 /** Void methods that load or display an ad. These are replaced with a bare return. */
 private val AD_ENTRY_METHOD = Regex("^(load|show)([A-Z0-9_].*)?$")
 
+/**
+ * ExoPlayer and Media3 ask an AdsLoader.Provider for an ad loader whenever a media item has ads.
+ * Returning null makes the player skip ads and play the content, instead of waiting for an
+ * ad SDK that has been stubbed out.
+ */
+private val ADS_LOADER_PROVIDER_TYPES = setOf(
+    "Landroidx/media3/exoplayer/source/ads/AdsLoader\$Provider;",
+    "Lcom/google/android/exoplayer2/source/ads/AdsLoader\$Provider;",
+)
+
 private val MANIFEST_COMPONENT_TAGS = listOf("activity", "service", "receiver", "provider")
 
 @Suppress("unused")
@@ -128,6 +138,28 @@ val removeAdsPatch = patch(
             }
         }
 
-        logger.info("Disabled $disabledComponents ad components, stubbed $stubbedMethods ad methods.")
+        // Step 3: make the player skip ads by returning no ad loader from any provider.
+        val providerClasses = mutableListOf<ClassDef>()
+        classDefForEach { classDef ->
+            if (classDef.interfaces.any { it in ADS_LOADER_PROVIDER_TYPES }) providerClasses += classDef
+        }
+
+        var skippedProviders = 0
+        providerClasses.forEach { classDef ->
+            mutableClassDefBy(classDef).methods.forEach { method ->
+                if (method.name == "getAdsLoader" &&
+                    method.returnType.endsWith("/AdsLoader;") &&
+                    method.implementation != null
+                ) {
+                    method.returnEarly(null)
+                    skippedProviders++
+                }
+            }
+        }
+
+        logger.info(
+            "Disabled $disabledComponents ad components, stubbed $stubbedMethods ad methods, " +
+                    "removed $skippedProviders ad loader providers."
+        )
     }
 }
