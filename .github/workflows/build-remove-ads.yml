@@ -2,6 +2,8 @@ name: Build Remove Ads bundle
 
 on:
   workflow_dispatch:
+  push:
+    branches: [remove-ads]
 
 permissions:
   contents: write
