@@ -39,8 +39,7 @@ jobs:
             --arg created "$(date -u +%Y-%m-%dT%H:%M:%S)" \
             --arg url "$BASE/patches.mpp" \
             --arg version "$VERSION" \
-            --arg key "$(cat morphe-signing.pub)" \
-            '{created_at: $created, description: "Remove ads universal patch", download_url: $url, signature_download_url: "", version: $version, public_key: $key}' \
+            '{created_at: $created, description: "Remove ads universal patch", download_url: $url, signature_download_url: "", version: $version, public_key: ""}' \
             > patches-bundle.json
           gh release delete remove-ads --yes --cleanup-tag || true
           gh release create remove-ads patches.mpp patches-bundle.json --title "Remove Ads bundle" --notes "Latest build"
