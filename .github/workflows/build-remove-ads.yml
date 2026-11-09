@@ -32,5 +32,15 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           FILE=$(ls patches/build/libs/patches-*.mpp | grep -v -e sources -e javadoc | head -1)
+          cp "$FILE" patches.mpp
+          VERSION="1.0.${{ github.run_number }}"
+          BASE="https://github.com/${{ github.repository }}/releases/download/remove-ads"
+          jq -n \
+            --arg created "$(date -u +%Y-%m-%dT%H:%M:%S)" \
+            --arg url "$BASE/patches.mpp" \
+            --arg version "$VERSION" \
+            --arg key "$(cat morphe-signing.pub)" \
+            '{created_at: $created, description: "Remove ads universal patch", download_url: $url, signature_download_url: "", version: $version, public_key: $key}' \
+            > patches-bundle.json
           gh release delete remove-ads --yes --cleanup-tag || true
-          gh release create remove-ads "$FILE#patches.mpp" --title "Remove Ads bundle" --notes "Latest build"
+          gh release create remove-ads patches.mpp patches-bundle.json --title "Remove Ads bundle" --notes "Latest build"
