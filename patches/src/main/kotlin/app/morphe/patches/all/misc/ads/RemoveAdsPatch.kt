@@ -61,10 +61,18 @@ private val AD_SDK_PREFIXES = listOf(
 
 private val AD_SDK_TYPE_PREFIXES = AD_SDK_PREFIXES.map { "L" + it.replace('.', '/') }
 
-/** Void methods that start, load or display an ad. These are replaced with a bare return. */
-private val AD_ENTRY_METHOD = Regex(
-    "^(load|show|init|initialize|start|preload|fetch|request|display|render|open)([A-Z0-9_].*)?$"
+/**
+ * Parts of the ad packages that video and app logic depend on. Stubbing these leaves players
+ * waiting for an ad callback that never comes, or breaks the advertising ID lookup.
+ */
+private val AD_SDK_EXCLUDED_PREFIXES = listOf(
+    "Lcom/google/ads/interactivemedia/",
+    "Lcom/google/android/gms/ads/identifier/",
+    "Lcom/google/android/gms/ads/impl/",
 )
+
+/** Void methods that load or display an ad. These are replaced with a bare return. */
+private val AD_ENTRY_METHOD = Regex("^(load|show)([A-Z0-9_].*)?$")
 
 private val MANIFEST_COMPONENT_TAGS = listOf("activity", "service", "receiver", "provider")
 
@@ -99,7 +107,11 @@ val removeAdsPatch = patch(
         // Collect first, then mutate, to avoid changing the class list while iterating it.
         val adClasses = mutableListOf<ClassDef>()
         classDefForEach { classDef ->
-            if (AD_SDK_TYPE_PREFIXES.any { classDef.type.startsWith(it) }) adClasses += classDef
+            if (AD_SDK_TYPE_PREFIXES.any { classDef.type.startsWith(it) } &&
+                AD_SDK_EXCLUDED_PREFIXES.none { classDef.type.startsWith(it) }
+            ) {
+                adClasses += classDef
+            }
         }
 
         var stubbedMethods = 0
