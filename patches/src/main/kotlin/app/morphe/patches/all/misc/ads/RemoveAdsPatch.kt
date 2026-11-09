@@ -26,9 +26,12 @@
 
 package app.morphe.patches.all.misc.ads
 
+import app.morphe.patcher.patch.classDefForEach
+import app.morphe.patcher.patch.mutableClassDefBy
 import app.morphe.patcher.patch.patch
 import app.morphe.patcher.patch.resourceXml
 import app.morphe.patcher.util.returnEarly
+import com.android.tools.smali.dexlib2.iface.ClassDef
 import java.util.logging.Logger
 
 /**
@@ -94,7 +97,7 @@ val removeAdsPatch = patch(
 
         // Step 2: stub the entry points of the ad SDK classes themselves.
         // Collect first, then mutate, to avoid changing the class list while iterating it.
-        val adClasses = mutableListOf<com.android.tools.smali.dexlib2.iface.ClassDef>()
+        val adClasses = mutableListOf<ClassDef>()
         classDefForEach { classDef ->
             if (AD_SDK_TYPE_PREFIXES.any { classDef.type.startsWith(it) }) adClasses += classDef
         }
